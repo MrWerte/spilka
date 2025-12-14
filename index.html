@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="ua">
+<head>
+  <meta charset="UTF-8" />
+  <title>Spilka</title>
+
+  <!-- Firebase (Google login) -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+
+  <style>
+    :root {
+      --purple: #9b00ff;
+      --dark-purple: #7a00cc;
+    }
+    * { box-sizing: border-box; font-family: Arial, sans-serif; }
+    body {
+      margin: 0;
+      background: var(--purple);
+      color: black;
+    }
+    .top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px;
+    }
+    .icons span { cursor:pointer; margin-left:10px; }
+    .feed { padding: 14px; padding-bottom: 90px; }
+    .post {
+      background: rgba(255,255,255,0.15);
+      border-radius: 12px;
+      padding: 12px;
+      margin-bottom: 12px;
+    }
+    .actions span { cursor: pointer; margin-right: 10px; }
+    .bottom {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: var(--dark-purple);
+      display: flex;
+      justify-content: space-around;
+      padding: 10px 0;
+    }
+    .bottom span { font-size: 26px; cursor: pointer; }
+    .modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.4);
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-content {
+      background: var(--purple);
+      padding: 16px;
+      border-radius: 12px;
+      width: 90%;
+      max-width: 400px;
+    }
+    input, textarea, button {
+      width: 100%;
+      margin-bottom: 8px;
+      padding: 8px;
+      border-radius: 8px;
+      border: none;
+    }
+  </style>
+</head>
+<body>
+
+<div class="top">
+  <div>☰ <b>Spilka</b></div>
+  <div class="icons">
+    <span onclick="openSearch()">🔍</span>
+    <span onclick="googleLogin()">👤</span>
+  </div>
+</div>
+
+<div class="feed" id="home"></div>
+<div class="feed" id="communities" style="display:none">👥 Сообщества (пока пусто)</div>
+<div class="feed" id="chats" style="display:none">💬 Чаты (пока пусто)</div>
+<div class="feed" id="notifications" style="display:none">🔔 Уведомления (пока пусто)</div>
+
+<div class="bottom">
+  <span onclick="showTab('home')">🏠</span>
+  <span onclick="showTab('communities')">👥</span>
+  <span onclick="openModal()">➕</span>
+  <span onclick="showTab('chats')">💬</span>
+  <span onclick="showTab('notifications')">🔔</span>
+</div>
+
+<!-- Создание поста -->
+<div class="modal" id="modal">
+  <div class="modal-content">
+    <h3>Новый пост</h3>
+    <input id="title" placeholder="Заголовок" />
+    <textarea id="text" placeholder="Текст"></textarea>
+    <button onclick="addPost()">Опубликовать</button>
+    <button onclick="closeModal()">Отмена</button>
+  </div>
+</div>
+
+<!-- Поиск -->
+<div class="modal" id="searchModal">
+  <div class="modal-content">
+    <h3>Поиск</h3>
+    <input id="searchInput" placeholder="Поиск постов..." oninput="searchPosts()">
+    <button onclick="closeSearch()">Закрыть</button>
+  </div>
+</div>
+
+<script>
+// Firebase config (ЗАМЕНИ СВОИМИ ДАННЫМИ)
+firebase.initializeApp({
+  apiKey: "dd5be41c39add7efe22014758811aa4929b785f3",
+  authDomain: "dd5be41c39add7efe22014758811aa4929b785f3"
+});
+const auth = firebase.auth();
+
+function googleLogin() {
+  const provider = new firebase.auth.GoogleAuthProvider();
+  auth.signInWithPopup(provider)
+    .then(res => alert('Вошёл как: ' + res.user.displayName))
+    .catch(err => alert(err.message));
+}
+
+let currentTab = 'home';
+let posts = [];
+
+const home = document.getElementById('home');
+const communities = document.getElementById('communities');
+const chats = document.getElementById('chats');
+const notifications = document.getElementById('notifications');
+const modal = document.getElementById('modal');
+
+function showTab(tab) {
+  currentTab = tab;
+  render();
+}
+
+function render() {
+  home.style.display = currentTab === 'home' ? 'block' : 'none';
+  communities.style.display = currentTab === 'communities' ? 'block' : 'none';
+  chats.style.display = currentTab === 'chats' ? 'block' : 'none';
+  notifications.style.display = currentTab === 'notifications' ? 'block' : 'none';
+
+  if (currentTab !== 'home') return;
+
+  home.innerHTML = '';
+  posts.forEach((p, i) => {
+    home.innerHTML += `
+      <div class="post">
+        <h3>${p.title}</h3>
+        <p>${p.text}</p>
+        <div class="actions">
+          <span onclick="vote(${i},1)">⬆ ${p.votes}</span>
+          <span onclick="vote(${i},-1)">⬇</span>
+          <span>💬</span>
+        </div>
+      </div>`;
+  });
+}
+
+function vote(i, v) { posts[i].votes += v; render(); }
+function openModal() { modal.style.display = 'flex'; }
+function closeModal() { modal.style.display = 'none'; }
+
+function addPost() {
+  if (!title.value) return;
+  posts.unshift({ title: title.value, text: text.value, votes: 0 });
+  closeModal();
+  render();
+}
+
+// SEARCH
+function openSearch(){ document.getElementById('searchModal').style.display='flex'; }
+function closeSearch(){ document.getElementById('searchModal').style.display='none'; render(); }
+function searchPosts(){
+  const q = searchInput.value.toLowerCase();
+  home.innerHTML='';
+  posts.filter(p=>p.title.toLowerCase().includes(q)||p.text.toLowerCase().includes(q))
+  .forEach(p=>{
+    home.innerHTML+=`<div class="post"><h3>${p.title}</h3><p>${p.text}</p></div>`;
+  });
+}
+
+render();
+</script>
+
+</body>
+</html>
