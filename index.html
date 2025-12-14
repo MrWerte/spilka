@@ -114,7 +114,7 @@
 
 <script>
 // Firebase config (ЗАМЕНИ СВОИМИ ДАННЫМИ)
-firebase.initializeApp({
+const firebaseConfig = {
   apiKey: "AIzaSyBVYgDvDyE8gwt6cWkQdYIM-EACeADNiNU",
   authDomain: "spilka-b012a.firebaseapp.com",
   projectId: "spilka-b012a",
@@ -122,7 +122,7 @@ firebase.initializeApp({
   messagingSenderId: "27400674186",
   appId: "1:27400674186:web:20c64bfe1740fbe0cc4673",
   measurementId: "G-KHB84QFB97"
-});
+};
 const auth = firebase.auth();
 
 function googleLogin() {
@@ -197,6 +197,7 @@ render();
 
 </body>
 </html>
+
 
 
 
